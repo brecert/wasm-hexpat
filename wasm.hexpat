@@ -1,3 +1,10 @@
+#pragma author bree
+#pragma description WebAssembly binary format
+
+#pragma MIME application/wasm
+
+#pragma endian little
+
 import type.magic;
 import type.leb128;
 
