@@ -364,21 +364,30 @@ struct MemoryArg {
   U32;
 };
 
+fn is_end_byte() {
+  return std::mem::read_unsigned($, 1) == 0x0B;
+};
+
+fn is_end_or_else_byte() {
+  u8 byte = std::mem::read_unsigned($, 1);
+  return byte != 0x0B && byte != 0x05;
+};
+
 struct Instruction {
   OpCode opcode;
 
   match(opcode) {
     (OpCode::Block | OpCode::Loop): {
       BlockType;
-      Instruction instructions[while(std::mem::read_unsigned($, 1) != 0x0B)];
+      Instruction instructions[while(!is_end_byte())];
       util::Lit<u8, 0x0B>;
     }
     (OpCode::If): {
       BlockType;
-      Instruction instructions[while(std::mem::read_unsigned($, 1) != 0x0B && std::mem::read_unsigned($, 1) != 0x05)];
-      u8 _marker [[hidden]];
+      Instruction instructions[while(!is_end_or_else_byte())];
+      u8 _marker;
       if(_marker == 0x05) {
-        Instruction instructions2[while(std::mem::read_unsigned($, 1) != 0x0B)];
+        Instruction instructions2[while(!is_end_byte())];
         util::Lit<u8, 0x0B>;
       }
     }
@@ -425,7 +434,7 @@ struct Instruction {
 };
 
 struct Expression {
-  Instruction instructions2[while(std::mem::read_unsigned($, 1) != 0x0B)];
+  Instruction instructions[while(!is_end_byte())];
   util::Lit<u8, 0x0B>;
 };
 
@@ -635,10 +644,12 @@ struct Section {
     (SectionKind::Global): GlobalSection [[inline]];
     (SectionKind::Export): ExportSection [[inline]];
     (SectionKind::Start): StartSection [[inline]];
-    (SectionKind::Element): ElementSection [[inline]];
-    (SectionKind::Code): CodeSection [[inline]];
-    (SectionKind::Data): DataSection [[inline]];
+    // Expression Parsing feels exponential in performnace, very slow
+    // (SectionKind::Element): ElementSection [[inline]];
+    // (SectionKind::Code): CodeSection [[inline]];
+    // (SectionKind::Data): DataSection [[inline]];
     (SectionKind::DataCount): DataCountSection [[inline]];
+    (_): padding[size];
   }
 };
 
